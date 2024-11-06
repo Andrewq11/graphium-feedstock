@@ -16,7 +16,7 @@ build:
   script: |
     export CXXFLAGS="${CXXFLAGS} -DNDEBUG"
     {{ PYTHON }} -m pip install . -vv --no-deps
-  skip: true  # [py<310 or py>311]
+  skip: true  # [py<39 or py>311]
   entry_points:
     - graphium = graphium.cli.main:app
     - graphium-train = graphium.cli.train_finetune_test:cli
