@@ -1,45 +1,60 @@
 {% set name = "graphium" %}
-{% set version = "2.2.0" %}
+{% set version = "3.0.0" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/graphium-{{ version }}.tar.gz
-  sha256: 1b2641753ef0935ee98337969c9db66ca6524385649d7623f0e6cc601aace3af
+  git_url: https://github.com/datamol-io/graphium.git # Change to archive url - https://conda-forge.org/docs/maintainer/adding_pkgs/#build-from-tarballs-not-repos, url: https://github.com/datamol-io/graphium/archive/{{ version }}.tar.gz
+  # sha256: compute checksum for tarball
+  git_rev: "6bfbcb7"  # use a tag (be mindful of depth)
+  #git_depth: 1
 
 build:
-  entry_points:
-    - graphium = graphium.cli:main_cli
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv
   number: 0
+  script: |
+    export CXXFLAGS="${CXXFLAGS} -DNDEBUG"
+    {{ PYTHON }} -m pip install . -vv --no-deps
+  skip: true  # [py<310 or py>311]
+  entry_points:
+    - graphium = graphium.cli.main:app
+    - graphium-train = graphium.cli.train_finetune_test:cli
 
 requirements:
-  host:
-    - python >=3.8
-    - setuptools
-    - setuptools-scm
-    - pip
-  run:
-    - python >=3.8
+  build:
+    - python
+    - pybind11
+    - {{ compiler('cxx') }}
 
-    - click
+  host:
+    - python
+    - pip
+    - pybind11
+    - pytorch <2.5
+    - librdkit-dev
+    - rdkit ==2024.03.4
+    - boost
+    - numpy ==1.25.0
+
+  run:
+    - python
+    - typer
     - loguru
     - omegaconf >=2.0.0
     - tqdm
     - platformdirs
+    - hydra-core
 
     # scientific
-    - numpy
+    - numpy ==1.25.0
     - scipy >=1.4
     - pandas >=1.0
     - scikit-learn
     - fastparquet
 
     # viz
-    - matplotlib-base >=3.0.1
+    - matplotlib >=3.0.1
     - seaborn
 
     # cloud IO
@@ -48,29 +63,38 @@ requirements:
     - gcsfs >=2021.6
 
     # ML packages
-    - pytorch >=1.12
+    - cuda-version
+    - pytorch <2.5
     - lightning >=2.0
-    - torchmetrics >=0.7.0,<0.11
+    - torchmetrics
     - ogb
-    - pytorch_geometric >=2.0
-    - wandb
+    - pytorch_geometric >=2.0 
+    - wandb >=0.18.5
     - mup
     - pytorch_sparse >=0.6
-    - pytorch_cluster >=1.5
+    - pytorch_cluster >=1.6
     - pytorch_scatter >=2.0
 
     # chemistry
-    - rdkit
+    - rdkit ==2024.03.4
     - datamol >=0.10
 
 test:
   requires:
     - pydantic <2
+    - pytest >=6.0
+    - pytest-xdist
+    - pytest-cov
+    - pytest-forked
+    - nbconvert
+    - black >=23
+    - jupyterlab
+    - ipywidgets
   imports:
     - graphium
   commands:
     - graphium --help
-    - graphium --version | grep {{ version }}
+    - python -c "import graphium; assert graphium.__version__ == '{{ version }}'"
 
 about:
   summary: 'Graphium: Scaling molecular GNNs to infinity.'
